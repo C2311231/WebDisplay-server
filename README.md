@@ -1,29 +1,13 @@
 
-# WebDisplay V2.0
+# WebDisplay Server V1.0
 
 > **Work in progress**
 
-Simple project to remotely manage and control a web browser for digital signage
+Server to manage and control WebDisplay Devices.
 
-#### Features
+> Note: This repository serves as the starting point for the dedicated WebDisplay server implementation, based on the original WebDisplay source code. It will eventually replace the internal WebDisplay server and transition the system to a more centralized control architecture.
 
-- Display Google Slides
-- Display Websites
-- Event Scheduling
-- CEC Support (Control Screen Power)
-- Live Screenshots
-- Easy Updating
-- Easy Multi-device Management
-- Multi-device Events
-- Premade Raspberry Pi Image
-
-#### Upcoming Features
-
-- Multiple Display Support
-- Networking Configuration
-- User Defined Templates
-
-## Documentation
+<!-- ## Documentation
 
 ### Getting Started
 
@@ -32,7 +16,7 @@ Simple project to remotely manage and control a web browser for digital signage
 Install dependencies:
 
     sudo apt update
-    sudo apt install -y chromium-chromedriver chromium python3 python3-pip unclutter git ## Also install libcec-dev if cec is supported
+    sudo apt install -y python3 python3-pip git
 
 Create required directories and create and pull git repository:
 
@@ -70,22 +54,6 @@ Paste this config (Fill in placeholders {})
     ExecStart=/{path/to/WebDisplay/directory}/.venv/bin/python3 /{path/to/WebDisplay/directory}/main.py db.db {port}
     WorkingDirectory=/{path/to/WebDisplay/directory}
 
-Enable Service
-
-    sudo systemctl enable WebDisplay
-
-#### Raspberry PI Install
-
-1. Download and install Raspberry Pi Imager: https://www.raspberrypi.com/software/
-1. Download the image artifact from the most recent successful build: https://github.com/C2311231/WebDisplay/actions/workflows/main.yml
-1. Run Raspberry Pi Imager and select the desired device, then chose custom image then select the downloaded image, then pick your desired storage device and click next.
-1. It should provide the option to configure user information and wifi, if you are using wifi you can configure it here, and change the default password if you would like (Username may not be changed).
-1. Flash the micro sd card and install it into the RPI.
-1. Boot the RPI, and it should automatically complete the rest of the setup after a few minutes.
-1. It should now be accessible at http://{device ip}:5000.
-
-#### Windows Install (Coming Soon)
-
 ### Usage
 
 #### Running Manually:
@@ -94,35 +62,5 @@ Enable Service
 
 #### Accessing the Web Interface:
 
-The web interface is available at: http://{device ip}:{port}  
-Other devices should automatically be detected and added to the side menu.
-
-## To Do Next Version
-
-
-- Improved UI
-    - Tooltips / Setting Descriptions
-    - Centralized management
-        - Global On/Off
-    - Add networking config
-    - Improved event scheduling
-        - Event Priorities
-        
-
-## To Do Eventually
-- Prerecord looping content to improve playback experience
-- Add user defined templates
-- Add automated tests
-- Create Install Script
-- Improved device onboarding
-    - WiFi hotspot
-    - Onboarding Startup Screen with instructions
-- Video Events
-    - Automaticly Transcode to optimal res/codec (h265 up to 4k rpi 5, h264 1080 for other pis)
-    - Synchronous video events (Multiple devices in near frame perfect sync)
-    - Audio sync
-    - Video streams (RTMP, WebRTC)
-- Device Groups (Device can be a member of multiple groups)
-- algorithmic Scheduling
-- Day Specific overrides (For holidays or other events)
-- Percentage Based Event Deployment with dynamic reallocation (20% show one content source 80% another...)
+The web interface is available at: http://{server ip}:{port}  
+Other devices should automatically be detected and added to the side menu. -->
