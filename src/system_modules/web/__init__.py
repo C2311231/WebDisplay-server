@@ -29,9 +29,8 @@ class web_module(module_base.module):
         self.web_modules = {}
                                        
     def start(self, cancel_run = False) -> None:
-        self.app = Flask(__name__, template_folder=os.path.join(base_dir, "templates"), static_folder=os.path.join(base_dir, "static"))
         self.api: api_registry.ApiRegistry = self.system.get_module("api_registry")  # type: ignore
-        self.app = Flask(__name__, template_folder=os.path.join(base_dir, "templates"), static_folder=os.path.join(base_dir, "static"))
+        self.app = Flask(__name__, static_folder=os.path.join(base_dir, "ui/webdisplay/dist/assets"))
         self.register_routes()
         if not cancel_run:
             self.run_app()

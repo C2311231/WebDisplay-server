@@ -1,2 +1,0 @@
-git+https://github.com/C2311231/python-cec.git
--r requirements.txt
