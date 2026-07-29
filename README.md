@@ -7,11 +7,11 @@ Server to manage and control WebDisplay Devices.
 
 > Note: This repository serves as the starting point for the dedicated WebDisplay server implementation. It will eventually replace the internal WebDisplay server and transition the system to a more centralized control architecture.
 
-<!-- ## Documentation
+## Documentation
 
-### Getting Started
+<!-- ### Getting Started
 
-#### Debian Based Install
+#### Debian Based Inssall
 
 Install dependencies:
 
@@ -52,15 +52,19 @@ Paste this config (Fill in placeholders {})
     User={Username}
     Restart=always
     ExecStart=/{path/to/WebDisplay/directory}/.venv/bin/python3 /{path/to/WebDisplay/directory}/main.py db.db {port}
-    WorkingDirectory=/{path/to/WebDisplay/directory}
+    WorkingDirectory=/{path/to/WebDisplay/directory} -->
 
 ### Usage
 
-#### Running Manually:
+#### Running Manually
 
     /{path/to/WebDisplay/directory}/.venv/bin/python3 /{path/to/WebDisplay/directory}/main.py db.db {port}
 
 #### Accessing the Web Interface:
 
 The web interface is available at: http://{server ip}:{port}  
-Other devices should automatically be detected and added to the side menu. -->
+Other devices should automatically be detected and added to the side menu.
+
+### Notes
+
+> More information is available in the main WebDisplay repository.
