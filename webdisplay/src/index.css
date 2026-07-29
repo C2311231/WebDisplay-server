@@ -20,11 +20,11 @@
 }
 
 html, body, #root {
-  height: 100%;
+  @apply w-screen h-screen
 }
 
 .main_content {
-  @apply w-full h-full text-(--color-text) p-3 bg-(--color-bg) overflow-y-scroll;
+  @apply w-screen h-screen text-(--color-text) p-3 bg-(--color-bg) overflow-y-scroll;
 }
 
 .dashboard_card {

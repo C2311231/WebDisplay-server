@@ -5,7 +5,7 @@
 
 Server to manage and control WebDisplay Devices.
 
-> Note: This repository serves as the starting point for the dedicated WebDisplay server implementation, based on the original WebDisplay source code. It will eventually replace the internal WebDisplay server and transition the system to a more centralized control architecture.
+> Note: This repository serves as the starting point for the dedicated WebDisplay server implementation. It will eventually replace the internal WebDisplay server and transition the system to a more centralized control architecture.
 
 <!-- ## Documentation
 

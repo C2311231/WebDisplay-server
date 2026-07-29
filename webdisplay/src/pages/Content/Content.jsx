@@ -1,6 +1,6 @@
 import Table from "../../components/Table";
 import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import CreateContent from "../Content/CreateContent";
+import CreateContent from "./CreateContent";
 
 export default function Content() {
     return (

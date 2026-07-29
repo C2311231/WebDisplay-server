@@ -1,7 +1,5 @@
 """
-Webdisplay Main Program File
-
-Part of WebDisplay
+Webdisplay Server
 Entrypoint
 
 License: MIT license
@@ -10,12 +8,3 @@ Author: C2311231
 
 Notes:
 """
-
-import src.system as system
-system_manager = system.system()
-system_manager.load_modules()
-system_manager.validate_required_modules()
-system_manager.start_modules()
-
-## Start program loop
-system_manager.main_loop()
