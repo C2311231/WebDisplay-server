@@ -18,9 +18,7 @@ import uuid
 from argon2.low_level import hash_secret_raw, Type
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
-# TODO Add a method to remove devices that have not been seen for a certain amount of time.
 # TODO Add ability to associate devices with a certian user or account.
-# TODO Workout encryption method and key managment.
 
 
 def derive_key(pairing_code: str, salt: bytes) -> bytes:
@@ -120,6 +118,11 @@ class DeviceManager:
         waiting_device = None
         encrypted_data = None
         for device in self.awaiting_registration:
+            if device.timestamp < time.time() - 20: # 20 seconds
+                print(
+                    f"Device {device.device_id} has been awaiting registration for more than 5 minutes. Removing from awaiting registration.")
+                self.awaiting_registration.remove(device)
+                continue
             try:
                 encrypted_data = decrypt_pairing_data(
                     pairing_code, device.encrypted_data["data"])
@@ -128,7 +131,6 @@ class DeviceManager:
             finally:
                 if encrypted_data:
                     waiting_device = device
-            break
 
         if waiting_device == None or encrypted_data == None:
             print(
