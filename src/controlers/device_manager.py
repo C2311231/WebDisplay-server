@@ -105,9 +105,6 @@ class DeviceManager:
         print(
             f"Added awaiting device: {device_id}, {platform}, {capabilities}")
 
-    def register_awaiting_device(self, pairing_code: str):
-        self.approved_devices.append({pairing_code, time.time()})
-
     def get_awaiting_devices(self):
         return self.awaiting_registration
 
@@ -137,12 +134,23 @@ class DeviceManager:
                 f"Device with pairing code {pairing_code} not found in awaiting registration.")
             return
 
-        self.approved_devices = [
-            device for device in self.approved_devices if pairing_code not in device]
-        self.awaiting_registration.pop(waiting_device.device_id)
+        waiting_device.pairing_code = pairing_code
+        self.approved_devices.append(waiting_device)
+        self.awaiting_registration.remove(waiting_device)
 
         self.register_device(waiting_device.device_id, waiting_device.platform,
                              waiting_device.capabilities, encrypted_data["encryption_key"])
 
         print(
             f"Device {waiting_device.device_id} registered with pairing code {pairing_code}.")
+
+    def get_pairing_status(self, device_id: str):
+        for device in self.awaiting_registration:
+            if device.device_id == device_id:
+                return "awaiting_registration", None
+        for device in self.approved_devices:
+            if device.device_id == device_id:
+                return "approved", device.pairing_code
+        if device_id in self.devices:
+            return "registered", None
+        return "not_found", None
