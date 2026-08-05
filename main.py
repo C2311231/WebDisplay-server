@@ -13,10 +13,10 @@ Notes:
 from fastapi import FastAPI
 from pydantic import BaseModel
 import uvicorn
-from src.endpoints import onboarding
+import src.endpoints.api as api
 
 app = FastAPI()
-app.include_router(onboarding.router)
+app.include_router(api.router)
 
 class DeviceRegistration(BaseModel):
     device_id: str
