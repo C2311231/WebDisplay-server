@@ -7,6 +7,8 @@ Author: C2311231
 
 Notes:
 """
+import asyncio
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 import src.controlers.device_manager as device_manager
@@ -37,3 +39,11 @@ async def check_pairing_status(device_id: str):
     """
     status, pairing_code = deviceManager.get_pairing_status(device_id)
     return {"device_id": device_id, "status": status, "pairing_code": pairing_code}
+
+@router.on_event("startup")
+async def startup_event():
+    """
+    Startup event to initialize the device manager and start the pairing code reader.
+    """
+    # Start the pairing code reader in a separate thread
+    asyncio.create_task(deviceManager.read_pairing_codes())

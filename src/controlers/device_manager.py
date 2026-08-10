@@ -8,6 +8,7 @@ Author: C2311231
 
 Notes:
 """
+import asyncio
 import json
 
 from src.models.player import PlayerDevice
@@ -19,7 +20,7 @@ from argon2.low_level import hash_secret_raw, Type
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 # TODO Add ability to associate devices with a certian user or account.
-
+# TODO Add ability to automatically cycle pairing codes for security purposes.
 
 def derive_key(pairing_code: str, salt: bytes) -> bytes:
     return hash_secret_raw(
@@ -51,7 +52,7 @@ def decrypt_pairing_data(pairing_code: str, encrypted: dict) -> dict:
         ciphertext,
         None
     )
-
+    print(f"Decrypted pairing data: {plaintext.decode()}")
     return json.loads(plaintext.decode())
 
 
@@ -62,10 +63,13 @@ class AwaitingDevice:
         self.platform = platform
         self.capabilities = capabilities
         self.timestamp = time.time()
+        self.encryption_key = None
 
     def update_timestamp(self):
         self.timestamp = time.time()
 
+    def __str__(self):
+        return f"AwaitingDevice(device_id={self.device_id}, platform={self.platform}, capabilities={self.capabilities}, timestamp={self.timestamp}), encrypted_data={self.encrypted_data}"
 
 class DeviceManager:
     def __init__(self):
@@ -73,20 +77,45 @@ class DeviceManager:
         self.awaiting_registration = []
         self.approved_devices = []
 
-    def register_device(self, device_id: str, platform: str, capabilities: list[str], encryption_key: str):
-        config_id = str(uuid.uuid4())
-        config = PlayerConfig(config_id, f"Player {device_id}", "default")
 
+    ## Complete registration from player approval to ensure that the player is still available to be paired with and that the player can verify the pairing code itself.
+    # def register_device(self, device_id: str, platform: str, capabilities: list[str], encryption_key: str):
+    #     for device in self.awaiting_registration:
+    #         if device.device_id == device_id:
+    #             self.awaiting_registration.remove(device)
+    #             break
+            
+    #     config_id = str(uuid.uuid4())
+    #     config = PlayerConfig(config_id, f"Player {device_id}", "default")
+
+    #     if device_id in self.devices:
+    #         self.devices[device_id].update_timestamp()
+    #         print(f"Device {device_id} is already registered.")
+    #         return
+
+    #     device = PlayerDevice(device_id, config_id,
+    #                           platform, capabilities, encryption_key)
+    #     self.devices[device_id] = device
+    #     print(
+    #         f"Registered device: {device_id}, {config_id}, {platform}, {capabilities}, {encryption_key}")
+        
+    def approve_device(self, device_id: str):
         if device_id in self.devices:
             self.devices[device_id].update_timestamp()
-            print(f"Device {device_id} is already registered.")
+            print(f"Device {device_id} is already approved.")
             return
 
-        device = PlayerDevice(device_id, config_id,
-                              platform, capabilities, encryption_key)
-        self.devices[device_id] = device
+        approved_device = None
+        for device in self.awaiting_registration:
+            if device.device_id == device_id:
+                approved_device = device
+                self.awaiting_registration.remove(device)
+                break
+            
+    
+        self.approved_devices.append(approved_device)
         print(
-            f"Registered device: {device_id}, {config_id}, {platform}, {capabilities}, {encryption_key}")
+            f"Approved device: {approved_device}")
 
     def get_device(self, device_id: str):
         return self.devices.get(device_id, None)
@@ -95,7 +124,7 @@ class DeviceManager:
         return self.devices
 
     def add_awaiting_device(self, device_id: str, encrypted_data: dict, platform: str, capabilities: list[str]):
-        if device_id in [device.device_id for device in self.awaiting_registration]:
+        if device_id in [device.device_id for device in self.awaiting_registration] or device_id in self.devices or device_id in [device.device_id for device in self.approved_devices]:
             print(f"Device {device_id} is already awaiting registration.")
             return
 
@@ -111,19 +140,22 @@ class DeviceManager:
     def get_approved_devices(self):
         return self.approved_devices
 
-    def register_approved_device(self, pairing_code: str):
+    def approved_device(self, pairing_code: str):
         waiting_device = None
         encrypted_data = None
         for device in self.awaiting_registration:
             if device.timestamp < time.time() - 20: # 20 seconds
                 print(
-                    f"Device {device.device_id} has been awaiting registration for more than 5 minutes. Removing from awaiting registration.")
+                    f"Device {device.device_id} has been awaiting registration for more than 20 seconds. Removing from awaiting registration.")
                 self.awaiting_registration.remove(device)
                 continue
+            
+            print(device)
             try:
                 encrypted_data = decrypt_pairing_data(
-                    pairing_code, device.encrypted_data["data"])
+                    pairing_code, device.encrypted_data)
             except Exception as e:
+                print(e)
                 continue
             finally:
                 if encrypted_data:
@@ -135,11 +167,11 @@ class DeviceManager:
             return
 
         waiting_device.pairing_code = pairing_code
+        waiting_device.encryption_key = encrypted_data["encryption_key"]
         self.approved_devices.append(waiting_device)
         self.awaiting_registration.remove(waiting_device)
 
-        self.register_device(waiting_device.device_id, waiting_device.platform,
-                             waiting_device.capabilities, encrypted_data["encryption_key"])
+        self.approve_device(waiting_device.device_id)
 
         print(
             f"Device {waiting_device.device_id} registered with pairing code {pairing_code}.")
@@ -147,10 +179,23 @@ class DeviceManager:
     def get_pairing_status(self, device_id: str):
         for device in self.awaiting_registration:
             if device.device_id == device_id:
+                device.update_timestamp()
                 return "awaiting_registration", None
         for device in self.approved_devices:
+            device.update_timestamp()
             if device.device_id == device_id:
                 return "approved", device.pairing_code
         if device_id in self.devices:
             return "registered", None
         return "not_found", None
+    
+    ### Temporary method for testing purposes. Remove in production.
+    
+    async def read_pairing_codes(self):
+        while True:
+            text = await asyncio.to_thread(
+                input,
+                "Enter pairing code to register device: "
+            )
+
+            self.approved_device(text)
