@@ -37,8 +37,8 @@ async def check_pairing_status(device_id: str):
     """
     Endpoint to check the status of a pairing request.
     """
-    status, pairing_code = deviceManager.get_pairing_status(device_id)
-    return {"device_id": device_id, "status": status, "pairing_code": pairing_code}
+    status, verification = deviceManager.get_pairing_status(device_id)
+    return {"device_id": device_id, "status": status, "verification": verification}
 
 @router.on_event("startup")
 async def startup_event():
