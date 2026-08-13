@@ -11,11 +11,11 @@ import asyncio
 
 from fastapi import APIRouter
 from pydantic import BaseModel
-import src.controlers.device_manager as device_manager
+from src.controllers.device_manager import DeviceManager
 
 router = APIRouter(tags=["Onboarding"], prefix="/onboarding")
 
-deviceManager = device_manager.DeviceManager()
+deviceManager = DeviceManager()
 
 class PairingRequest(BaseModel):
     device_id: str
@@ -37,8 +37,8 @@ async def check_pairing_status(device_id: str):
     """
     Endpoint to check the status of a pairing request.
     """
-    status, verification = deviceManager.get_pairing_status(device_id)
-    return {"device_id": device_id, "status": status, "verification": verification}
+    status = deviceManager.get_pairing_status(device_id)
+    return {"device_id": device_id, "status": status}
 
 @router.on_event("startup")
 async def startup_event():
