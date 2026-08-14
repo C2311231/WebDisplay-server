@@ -32,25 +32,26 @@ class DeviceManager:
 
     def register_device_by_id(self, device_id: str, data: dict) -> None:
         found_device = None
+        devices = self.get_approved_devices()
+        if device_id in devices:
+            device = devices[device_id]
+            if device.encryption_key is None:
+                logging.error(
+                    f"Device {device_id} does not have an encryption key. Cannot decrypt pairing data.")
+                raise ValueError(
+                    f"Device {device_id} does not have an encryption key. Cannot decrypt pairing data.")
 
-        for device in self.get_approved_devices():
-            if device.device_id == device_id:
-                if device.encryption_key is None:
-                    logging.error(
-                        f"Device {device_id} does not have an encryption key. Cannot decrypt pairing data.")
-                    return
-                
-                decrypted_data = decrypt_msg(device.encryption_key, bytes.fromhex(
-                    data["nonce"]), bytes.fromhex(data["ciphertext"]))
-                
-                if decrypted_data:
-                    found_device = device
-                    break
+            decrypted_data = decrypt_msg(device.encryption_key, bytes.fromhex(
+                data["nonce"]), bytes.fromhex(data["ciphertext"]))
+
+            if decrypted_data:
+                found_device = device
 
         if found_device is None:
             logging.error(
                 f"Device {device_id} not found in awaiting registration.")
-            return
+            raise ValueError(
+                f"Device {device_id} not found in awaiting registration.")
 
         config_id = str(uuid.uuid4())
         config = src.models.player_config.PlayerConfig(
@@ -59,11 +60,11 @@ class DeviceManager:
         if device_id in self.devices:
             self.devices[device_id].update_timestamp()
             logging.info(f"Device {device_id} is already registered.")
-            return
+            raise ValueError(f"Device {device_id} is already registered.")
 
         # device = src.models.player.PlayerDevice(device_id, config_id,
         #                                         found_device.platform, found_device.capabilities, found_device.encryption_key)
-        
+
         found_device.set_status("online")
         logging.info(
             f"Registered device: {device_id}, {config_id}, {found_device.platform}, {found_device.capabilities}")
@@ -71,18 +72,18 @@ class DeviceManager:
     def approve_device(self, device_id: str) -> None:
         if device_id not in self.devices:
             logging.error(f"Device {device_id} not found.")
-            return
+            raise ValueError(f"Device {device_id} not found.")
 
-        if self.devices[device_id].status in  ["awaiting_verification", "online", "offline"]:
+        if self.devices[device_id].status in ["awaiting_verification", "online", "offline"]:
             self.devices[device_id].update_timestamp()
             logging.info(f"Device {device_id} is already approved.")
-            return
+            raise ValueError(f"Device {device_id} is already approved.")
 
         for device in self.devices.values():
             if device.device_id == device_id:
                 device.set_status("awaiting_verification")
                 logging.info(
-                            f"Approved device: {device_id}, {device.platform}, {device.capabilities}")
+                    f"Approved device: {device_id}, {device.platform}, {device.capabilities}")
                 break
 
     def get_device(self, device_id: str):
@@ -95,7 +96,8 @@ class DeviceManager:
         if device_id in self.devices:
             logging.info(
                 f"Device {device_id} is already awaiting registration.")
-            return
+            raise ValueError(
+                f"Device {device_id} is already awaiting registration.")
 
         awaiting_device = Device(
             device_id, encrypted_data, platform, capabilities)
@@ -104,10 +106,10 @@ class DeviceManager:
             f"Added awaiting device: {device_id}, {platform}, {capabilities}")
 
     def get_awaiting_devices(self):
-        return [self.devices[device_id] for device_id in self.devices if self.devices[device_id].status == "pending"]
+        return {device_id: self.devices[device_id] for device_id in self.devices if self.devices[device_id].status == "pending"}
 
     def get_approved_devices(self):
-        return [self.devices[device_id] for device_id in self.devices if self.devices[device_id].status == "awaiting_verification" or self.devices[device_id].status == "online"]
+        return {device_id: self.devices[device_id] for device_id in self.devices if self.devices[device_id].status == "awaiting_verification" or self.devices[device_id].status == "online"}
 
     def approved_device_by_pairing_code(self, pairing_code: str) -> None:
         waiting_device = None
@@ -127,7 +129,7 @@ class DeviceManager:
             except Exception as e:
                 logging.error(e)
                 continue
-            
+
             if encrypted_data:
                 waiting_device = device
                 break
@@ -135,7 +137,8 @@ class DeviceManager:
         if waiting_device == None or encrypted_data == None:
             logging.error(
                 f"Device with pairing code {pairing_code} not found in awaiting registration.")
-            return
+            raise ValueError(
+                f"Device with pairing code {pairing_code} not found in awaiting registration.")
 
         waiting_device.pairing_code = pairing_code
         waiting_device.encryption_key = encrypted_data["encryption_key"]
@@ -149,7 +152,7 @@ class DeviceManager:
     def get_pairing_status(self, device_id: str):
         if device_id not in self.devices:
             logging.error(f"Device {device_id} not found.")
-            return "not_found"
+            raise ValueError(f"Device {device_id} not found.")
 
         return self.devices[device_id].status
 
