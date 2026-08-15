@@ -9,7 +9,7 @@ Notes:
 """
 import asyncio
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from src.controllers.device_manager import DeviceManager
 from src.schemas.onboarding import *
 
@@ -17,6 +17,8 @@ router = APIRouter(tags=["Onboarding"], prefix="/onboarding")
 
 deviceManager = DeviceManager()
 
+
+# TODO Use HTTPException for error returns.
 
 @router.post("/pairing")
 async def request_pairing(pairing_request: PairingRequest):

@@ -31,6 +31,17 @@ class DeviceManager:
         self.devices: dict[str, Device] = {}
 
     def register_device_by_id(self, device_id: str, data: dict) -> None:
+        """Completes registration process for a player
+
+        Args:
+            device_id (str): ID of the device to register
+            data (dict): Encrypted data for identity verification
+
+        Raises:
+            ValueError: Device does not have a encryption key yet.
+            ValueError: Device not found in awaiting registration.
+            ValueError: Device is already registered.
+        """
         found_device = None
         devices = self.get_approved_devices()
         if device_id in devices:
@@ -70,6 +81,15 @@ class DeviceManager:
             f"Registered device: {device_id}, {config_id}, {found_device.platform}, {found_device.capabilities}")
 
     def approve_device(self, device_id: str) -> None:
+        """Marks a device as approved so that it can be registered
+
+        Args:
+            device_id (str): ID of the device to approve
+
+        Raises:
+            ValueError: Device not found.
+            ValueError: Device is already approved.
+        """
         if device_id not in self.devices:
             logging.error(f"Device {device_id} not found.")
             raise ValueError(f"Device {device_id} not found.")
@@ -86,13 +106,32 @@ class DeviceManager:
                     f"Approved device: {device_id}, {device.platform}, {device.capabilities}")
                 break
 
-    def get_device(self, device_id: str):
+    def get_device(self, device_id: str) -> Device | None:
+        """Returns the device with the provided ID
+
+        Args:
+            device_id (str): ID of the device to retrieve
+
+        Returns:
+            Device | None: The device object if found, otherwise None
+        """
         return self.devices.get(device_id, None)
 
-    def list_devices(self):
+    def get_devices(self) -> dict[str, Device]:
         return self.devices
 
     def add_awaiting_device(self, device_id: str, encrypted_data: dict, platform: str, capabilities: list[str]) -> None:
+        """Creates a discovered player device.
+
+        Args:
+            device_id (str): The ID of the discovered device.
+            encrypted_data (dict): A encrypted blob containing the encryption key and pairing data.
+            platform (str): The platform the software is installed on.
+            capabilities (list[str]): A list of the players capabilities.
+
+        Raises:
+            ValueError: Device is already waiting to be registered.
+        """
         if device_id in self.devices:
             logging.info(
                 f"Device {device_id} is already awaiting registration.")
@@ -105,24 +144,41 @@ class DeviceManager:
         logging.info(
             f"Added awaiting device: {device_id}, {platform}, {capabilities}")
 
-    def get_awaiting_devices(self):
+    def get_awaiting_devices(self) -> dict[str, Device]:
+        """Returns devices that are awaiting approval.
+
+        Returns:
+            dict[str, Device]: A dictionary of devices that are awaiting approval.
+        """
         return {device_id: self.devices[device_id] for device_id in self.devices if self.devices[device_id].status == "pending"}
 
-    def get_approved_devices(self):
+    def get_approved_devices(self) -> dict[str, Device]:
+        """Returns devices that are approved.
+
+        Returns:
+            dict[str, Device]: A dictionary of devices that are approved.
+        """
         return {device_id: self.devices[device_id] for device_id in self.devices if self.devices[device_id].status == "awaiting_verification" or self.devices[device_id].status == "online"}
 
     def approved_device_by_pairing_code(self, pairing_code: str) -> None:
+        """Marks a device as approved.
+
+        Args:
+            pairing_code (str): The pairing code used to approve the device.
+
+        Raises:
+            ValueError: A device with the requested pairing code wasn't found.
+        """
         waiting_device = None
         encrypted_data = None
-        for device_id in self.devices:
+        for device_id in self.get_awaiting_devices():
             device = self.devices[device_id]
-            if device.status == "pending" and device.last_seen < time.time() - 20:  # 20 seconds
+            if device.last_seen < time.time() - 20:  # 20 seconds
                 logging.info(
                     f"Device {device.device_id} has been awaiting registration for more than 20 seconds. Removing from awaiting registration.")
                 device.set_status("error")
                 continue
 
-            logging.debug(device)
             try:
                 encrypted_data = decrypt_pairing_data(
                     pairing_code, device.encrypted_data)
@@ -149,7 +205,18 @@ class DeviceManager:
         logging.info(
             f"Device {waiting_device.device_id} registered with pairing code {pairing_code}.")
 
-    def get_pairing_status(self, device_id: str):
+    def get_pairing_status(self, device_id: str) -> str:
+        """Returns the pairing status of a device.
+
+        Args:
+            device_id (str): ID of the requested device.
+
+        Raises:
+            ValueError: Device doesnt exist.
+
+        Returns:
+            str: The status of the device.
+        """
         if device_id not in self.devices:
             logging.error(f"Device {device_id} not found.")
             raise ValueError(f"Device {device_id} not found.")
