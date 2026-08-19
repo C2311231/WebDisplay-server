@@ -22,9 +22,6 @@ import logging
 from .encryption_handler import decrypt_pairing_data, encrypt_msg, decrypt_msg
 from .device import Device
 
-# TODO Add ability to associate devices with a certian user or account.
-# TODO Add ability to automatically cycle pairing codes for security purposes.
-
 
 class DeviceManager:
     def __init__(self) -> None:
@@ -130,13 +127,16 @@ class DeviceManager:
             capabilities (list[str]): A list of the players capabilities.
 
         Raises:
-            ValueError: Device is already waiting to be registered.
+            ValueError: Provide device already exists and is no longer pending.
         """
         if device_id in self.devices:
-            logging.info(
-                f"Device {device_id} is already awaiting registration.")
-            raise ValueError(
-                f"Device {device_id} is already awaiting registration.")
+            if self.devices[device_id].status == "pending":
+                self.devices[device_id].update_timestamp()
+                # Update encrypted data so that the pairing code can be cycled and the long term encryptioon key changed.
+                self.devices[device_id].encrypted_data = encrypted_data
+            else:
+                raise ValueError(
+                    "The provided device_id is already past the pending phase.")
 
         awaiting_device = Device(
             device_id, encrypted_data, platform, capabilities)
@@ -160,7 +160,9 @@ class DeviceManager:
         """
         return {device_id: self.devices[device_id] for device_id in self.devices if self.devices[device_id].status == "awaiting_verification" or self.devices[device_id].status == "online"}
 
-    def approved_device_by_pairing_code(self, pairing_code: str) -> None:
+    # TODO Make account ID required once accounts are added.
+
+    def approved_device_by_pairing_code(self, pairing_code: str, account_id: str | None = None) -> None:
         """Marks a device as approved.
 
         Args:
@@ -198,6 +200,7 @@ class DeviceManager:
 
         waiting_device.pairing_code = pairing_code
         waiting_device.encryption_key = encrypted_data["encryption_key"]
+        waiting_device.account_id = account_id
         waiting_device.set_status("awaiting_verification")
 
         self.approve_device(waiting_device.device_id)

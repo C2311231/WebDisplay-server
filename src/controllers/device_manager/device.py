@@ -25,6 +25,7 @@ class Device:
         self.encryption_key = None
         self.status: str = "pending"
         self.pairing_code: str = ""
+        self.account_id: str | None = None
 
     def update_timestamp(self) -> None:
         self.last_seen: float = time.time()
