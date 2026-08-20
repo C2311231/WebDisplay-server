@@ -17,6 +17,7 @@ import cryptography.hazmat.primitives.ciphers.aead
 
 import logging
 
+
 def derive_key(pairing_code: str, salt: bytes) -> bytes:
     return argon2.low_level.hash_secret_raw(
         secret=pairing_code.encode(),
@@ -40,7 +41,8 @@ def decrypt_pairing_data(pairing_code: str, encrypted: dict) -> dict:
 
     key: bytes = derive_key(pairing_code, salt)
 
-    cipher: cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305 = cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305(key)
+    cipher: cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305 = cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305(
+        key)
 
     plaintext: bytes = cipher.decrypt(
         nonce,
@@ -50,17 +52,21 @@ def decrypt_pairing_data(pairing_code: str, encrypted: dict) -> dict:
     return json.loads(plaintext.decode())
 
 
-def encrypt_msg(key: bytes, data: bytes) -> tuple[bytes, bytes]:
+def encrypt_msg(key: bytes, data: dict) -> tuple[bytes, bytes]:
     nonce: bytes = os.urandom(12)
 
-    cipher: cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305 = cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305(key)
-    ciphertext: bytes = cipher.encrypt(nonce, data, None)
+    buffer = bytes(json.dumps(data), "utf-8")
+
+    cipher: cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305 = cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305(
+        key)
+    ciphertext: bytes = cipher.encrypt(nonce, buffer, None)
 
     return nonce, ciphertext
 
 
 def decrypt_msg(key: bytes, nonce: bytes, ciphertext: bytes) -> bytes | None:
-    cipher: cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305 = cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305(key)
+    cipher: cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305 = cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305(
+        key)
 
     try:
         return cipher.decrypt(nonce, ciphertext, None)
