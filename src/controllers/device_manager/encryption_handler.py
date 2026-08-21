@@ -18,7 +18,10 @@ import cryptography.hazmat.primitives.ciphers.aead
 import logging
 
 
-def derive_key(pairing_code: str, salt: bytes) -> bytes:
+def derive_key(pairing_code: str, salt: bytes | str) -> bytes:
+    if type(salt) != bytes:
+        salt = bytes.fromhex(salt)
+
     return argon2.low_level.hash_secret_raw(
         secret=pairing_code.encode(),
         salt=salt,
@@ -30,29 +33,9 @@ def derive_key(pairing_code: str, salt: bytes) -> bytes:
     )
 
 
-def decrypt_pairing_data(pairing_code: str, encrypted: dict) -> dict:
-    """
-    Attempt to decrypt pairing data using the supplied pairing code.
-    """
-
-    salt: bytes = bytes.fromhex(encrypted["salt"])
-    nonce: bytes = bytes.fromhex(encrypted["nonce"])
-    ciphertext: bytes = bytes.fromhex(encrypted["ciphertext"])
-
-    key: bytes = derive_key(pairing_code, salt)
-
-    cipher: cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305 = cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305(
-        key)
-
-    plaintext: bytes = cipher.decrypt(
-        nonce,
-        ciphertext,
-        None
-    )
-    return json.loads(plaintext.decode())
-
-
-def encrypt_msg(key: bytes, data: dict) -> tuple[bytes, bytes]:
+def encrypt_msg(key: bytes | str, data: dict) -> tuple[bytes, bytes]:
+    if type(key) != bytes:
+        key = bytes.fromhex(key)
     nonce: bytes = os.urandom(12)
 
     buffer = bytes(json.dumps(data), "utf-8")
@@ -64,7 +47,14 @@ def encrypt_msg(key: bytes, data: dict) -> tuple[bytes, bytes]:
     return nonce, ciphertext
 
 
-def decrypt_msg(key: bytes, nonce: bytes, ciphertext: bytes) -> bytes | None:
+def decrypt_msg(key: bytes | str, nonce: bytes | str, ciphertext: bytes | str) -> bytes | None:
+    if type(key) != bytes:
+        key = bytes.fromhex(key)
+    if type(nonce) != bytes:
+        nonce = bytes.fromhex(nonce)
+    if type(ciphertext) != bytes:
+        ciphertext = bytes.fromhex(ciphertext)
+
     cipher: cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305 = cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305(
         key)
 

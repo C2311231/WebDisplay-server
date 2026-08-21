@@ -22,10 +22,11 @@ class Device:
         self.platform: str = platform
         self.capabilities: list[str] = capabilities
         self.last_seen: float = time.time()
-        self.encryption_key = None
+        self.encryption_key: None | bytes = None
         self.status: str = "pending"
         self.pairing_code: str = ""
         self.account_id: str | None = None
+        self.current_message_id = 0
 
     def update_timestamp(self) -> None:
         self.last_seen: float = time.time()

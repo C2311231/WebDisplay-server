@@ -16,10 +16,11 @@ import src.models.player
 import src.models.player_config
 import time
 import uuid
+import json
 
 import logging
 
-from .encryption_handler import decrypt_pairing_data, encrypt_msg, decrypt_msg
+from .encryption_handler import derive_key, encrypt_msg, decrypt_msg
 from .device import Device
 
 
@@ -53,7 +54,14 @@ class DeviceManager:
                 data["nonce"]), bytes.fromhex(data["ciphertext"]))
 
             if decrypted_data:
-                found_device = device
+                decrypted_dict = None
+                try:
+                    decrypted_dict = json.loads(decrypted_data)
+                except:
+                    raise ValueError("Encrypted data is invalid.")
+                
+                if decrypted_dict["status"] == "success":
+                    found_device = device
 
         if found_device is None:
             logging.error(
@@ -65,7 +73,7 @@ class DeviceManager:
         config = src.models.player_config.PlayerConfig(
             config_id, f"Player {device_id}", "default")
 
-        if device_id in self.devices:
+        if found_device.status in ["online", "offline"]:
             self.devices[device_id].update_timestamp()
             logging.info(f"Device {device_id} is already registered.")
             raise ValueError(f"Device {device_id} is already registered.")
@@ -131,9 +139,14 @@ class DeviceManager:
         """
         if device_id in self.devices:
             if self.devices[device_id].status == "pending":
-                self.devices[device_id].update_timestamp()
-                # Update encrypted data so that the pairing code can be cycled and the long term encryptioon key changed.
-                self.devices[device_id].encrypted_data = encrypted_data
+                existing_device = self.devices[device_id]
+                
+                existing_device.update_timestamp()
+                # Update encrypted data so that the pairing code can be cycled and the key changed.
+                existing_device.encrypted_data = encrypted_data
+                existing_device.platform = platform
+                existing_device.capabilities = capabilities
+                return
             else:
                 raise ValueError(
                     "The provided device_id is already past the pending phase.")
@@ -158,8 +171,12 @@ class DeviceManager:
         Returns:
             dict[str, Device]: A dictionary of devices that are approved.
         """
-        return {device_id: self.devices[device_id] for device_id in self.devices if self.devices[device_id].status == "awaiting_verification" or self.devices[device_id].status == "online"}
-
+        return {
+            device_id: device
+            for device_id, device in self.devices.items()
+            if device.status in ["awaiting_verification", "online"]
+        }
+        
     # TODO Make account ID required once accounts are added.
 
     def approved_device_by_pairing_code(self, pairing_code: str, account_id: str | None = None) -> None:
@@ -172,7 +189,9 @@ class DeviceManager:
             ValueError: A device with the requested pairing code wasn't found.
         """
         waiting_device = None
-        encrypted_data = None
+        decrypted_data = None
+        key = None
+
         for device_id in self.get_awaiting_devices():
             device = self.devices[device_id]
             if device.last_seen < time.time() - 20:  # 20 seconds
@@ -182,26 +201,25 @@ class DeviceManager:
                 continue
 
             try:
-                encrypted_data = decrypt_pairing_data(
-                    pairing_code, device.encrypted_data)
-            except Exception as e:
-                logging.error(e)
-                continue
-
-            if encrypted_data:
+                key = derive_key(pairing_code, device.encrypted_data["salt"])
+                decrypted_data = decrypt_msg(key,
+                                             device.encrypted_data["nonce"], device.encrypted_data["data"])
+            except:
+                raise ValueError("The provided encrypted data is invalid.")
+                
+            if decrypted_data:
                 waiting_device = device
                 break
 
-        if waiting_device == None or encrypted_data == None:
+        if waiting_device == None or decrypted_data == None:
             logging.error(
                 f"Device with pairing code {pairing_code} not found in awaiting registration.")
             raise ValueError(
                 f"Device with pairing code {pairing_code} not found in awaiting registration.")
 
         waiting_device.pairing_code = pairing_code
-        waiting_device.encryption_key = encrypted_data["encryption_key"]
+        waiting_device.encryption_key = key
         waiting_device.account_id = account_id
-        waiting_device.set_status("awaiting_verification")
 
         self.approve_device(waiting_device.device_id)
 
